@@ -15,6 +15,8 @@ import java.util.Properties;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import ch.comstock.uccled.modules.*;
+
 /**
  * This Class instantiates and links the modules for MQTT, Serial and Fileprocessing. 
  * 
@@ -29,6 +31,11 @@ public class UCC_Led_Controller {
 	static String confFile = "config.properties";
 	static Properties conf = new Properties();
 	static Logger log = LogManager.getLogger(UCC_Led_Controller.class);
+	
+	static Serial serial;
+	static Mqtt mqtt;
+	static Fileproc fileproc;
+	
 
 	/**
 	 * Main class. Entrypoint for the app.
@@ -40,6 +47,23 @@ public class UCC_Led_Controller {
 			confFile = args[0];
 		}
 		getConfig();
+		
+		//Instanciate the modules
+		fileproc = new Fileproc();
+		serial = new Serial();
+		mqtt = new Mqtt();
+		
+		//Link the modules together
+		fileproc.setModules(mqtt, serial);
+		serial.setModules(mqtt, fileproc);
+		mqtt.setModules(fileproc, serial);
+		
+		//connect to DMX		
+		serial.connect(conf.getProperty("ttyPort","/dev/ttyAMA0"), conf.getProperty("ttyBaud", "115200"));
+		
+		fileproc.playFile("test.txt");
+		
+		
 	}
 
 	/**
@@ -78,6 +102,7 @@ public class UCC_Led_Controller {
 
 			// set the properties value
 			conf.setProperty("ttyPort", "/dev/ttyAMA0");
+			conf.setProperty("ttyBaud", "115200");
 			conf.setProperty("mqttHost", "192.168.2.246");
 			conf.setProperty("mqttTopicBase", "/PowerGov/");
 
